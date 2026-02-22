@@ -197,7 +197,7 @@ export PATH=$HOME/.local/bin:$HOME/.cargo/bin:$PATH
 
 #### 7.2 zsh plugins
 
-![zsh-autosuggestions](https://github.com/zsh-users/zsh-autosuggestions)
+[zsh-autosuggestions](https://github.com/zsh-users/zsh-autosuggestions)
 
 ```sh
 # On home directory
@@ -214,7 +214,7 @@ source ~/.zsh/zsh-autosuggestions/zsh-autosuggestions.zsh
 https://zaiste.net/posts/shell-commands-rust/
 
 ```sh
-
+cargo install bat exa procs dust tokei ytop tealdeer grex rmesg zoxide delta
 ```
 
 
