@@ -24,6 +24,7 @@ Here is the step-by-step process to create your user, grant them administrative 
       - [10.3 Install nftables and the compatibility layer.](#103-install-nftables-and-the-compatibility-layer)
       - [10.4 Creating the Podman Network Configuration](#104-creating-the-podman-network-configuration)
       - [10.4 Install kubectl autocomplete](#104-install-kubectl-autocomplete)
+    - [Final `zshrc` file](#final-zshrc-file)
 - [Install Windows Terminal](#install-windows-terminal)
 
 
@@ -321,6 +322,47 @@ compdef __start_kubectl k
 
 Reload with `source ~/.zshrc`
 
+### Final `zshrc` file
+```sh
+─────┬──────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+     │ File: .zshrc
+─────┼──────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+   1 │ autoload -Uz compinit
+   2 │ compinit
+   3 │
+   4 │ # Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
+   5 │ # Initialization code that may require console input (password prompts, [y/n]
+   6 │ # confirmations, etc.) must go above this block; everything else may go below.
+   7 │ if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
+   8 │   source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
+   9 │ fi
+  10 │
+  11 │ source /usr/share/zsh-theme-powerlevel10k/powerlevel10k.zsh-theme
+  12 │
+  13 │ # To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
+  14 │ [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
+  15 │
+  16 │
+  17 │ ######################################
+  18 │
+  19 │
+  20 │ # LunarVim
+  21 │ export PATH=$HOME/.local/bin:$HOME/.cargo/bin:$PATH
+  22 │
+  23 │ # KIND
+  24 │ export KIND_EXPERIMENTAL_PROVIDER=podman
+  25 │
+  26 │ # zsh plugins
+  27 │ source ~/.zsh/zsh-autosuggestions/zsh-autosuggestions.zsh
+  28 │
+  29 │ alias ls="exa --icons"
+  30 │ alias cat="bat --style=auto"
+  31 │ alias podman="docker"
+  32 │ alias k='kubectl'
+  33 │ source <(kubectl completion zsh)
+  34 │ compdef __start_kubectl k
+─────┴──────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+```
 
 # Install Windows Terminal 
 https://windowsterminalthemes.dev/
