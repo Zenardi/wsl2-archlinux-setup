@@ -25,7 +25,11 @@ Here is the step-by-step process to create your user, grant them administrative 
       - [10.4 Creating the Podman Network Configuration](#104-creating-the-podman-network-configuration)
       - [10.4 Install kubectl autocomplete](#104-install-kubectl-autocomplete)
     - [Final `zshrc` file](#final-zshrc-file)
-- [Install Windows Terminal](#install-windows-terminal)
+- [Install Windows Terminal Theme](#install-windows-terminal-theme)
+    - [Windows Terminal Font Setup (Crucial for Icons)](#windows-terminal-font-setup-crucial-for-icons)
+      - [1. Download the Fonts on Windows](#1-download-the-fonts-on-windows)
+      - [2. Install the Fonts](#2-install-the-fonts)
+      - [3. Configure Windows Terminal](#3-configure-windows-terminal)
 
 
 
@@ -399,7 +403,7 @@ Reload with `source ~/.zshrc`
 ─────┴──────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 ```
 
-# Install Windows Terminal 
+# Install Windows Terminal Theme
 https://windowsterminalthemes.dev/
 - Moonligh II
 ```json
@@ -425,3 +429,44 @@ https://windowsterminalthemes.dev/
   "foreground": "#c8d3f5"
 }
 ```
+
+This is a very important detail! When working with WSL2, there is a classic "gotcha" with fonts: **the terminal emulator rendering the text is running on Windows**, not Linux.
+
+Even if we install the Nerd Fonts inside Arch (which our script does with the `ttf-meslo-nerd-font-powerlevel10k` package for Powerlevel10k compatibility), your Windows Terminal won't be able to display the icons until the font is actually installed on your Windows host machine.
+
+Here is the section you should add to the end of your documentation to make the setup 100% complete.
+
+---
+
+### Windows Terminal Font Setup (Crucial for Icons)
+
+To ensure tools like Powerlevel10k, `exa` (icons), and LunarVim display correctly without missing characters or "boxes", you must install a Nerd Font on your Windows machine and configure Windows Terminal to use it.
+
+#### 1. Download the Fonts on Windows
+
+The recommended font for this exact setup (especially because of Powerlevel10k) is **MesloLGS NF**.
+Open your Windows browser and download these four font files:
+
+* [MesloLGS NF Regular.ttf](https://www.google.com/search?q=https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%2520NF%2520Regular.ttf)
+* [MesloLGS NF Bold.ttf](https://www.google.com/search?q=https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%2520NF%2520Bold.ttf)
+* [MesloLGS NF Italic.ttf](https://www.google.com/search?q=https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%2520NF%2520Italic.ttf)
+* [MesloLGS NF Bold Italic.ttf](https://www.google.com/search?q=https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%2520NF%2520Bold%2520Italic.ttf)
+
+*(Alternatively, you can download JetBrainsMono Nerd Font from the [official Nerd Fonts release page](https://github.com/ryanoasis/nerd-fonts/releases) if you prefer that style).*
+
+#### 2. Install the Fonts
+
+1. Open your Windows **Downloads** folder.
+2. Select all the `.ttf` files you just downloaded.
+3. Right-click them and select **Install** (or **Install for all users**).
+
+#### 3. Configure Windows Terminal
+
+1. Open **Windows Terminal**.
+2. Click the downward-facing arrow in the top bar and select **Settings** (or press `Ctrl+,`).
+3. On the left sidebar, click on your **Arch Linux** profile.
+4. Go to the **Appearance** tab.
+5. Under **Font face**, open the dropdown menu and select **MesloLGS NF** (or the Nerd Font you installed).
+6. Click **Save** at the bottom right.
+
+When you open your Arch Linux tab again, all the Zsh prompts, LunarVim UI elements, and folder icons will render perfectly.
