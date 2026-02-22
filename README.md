@@ -267,6 +267,41 @@ alias podman="docker"
 # To silence the warnning `Emulate Docker CLI using podman. Create /etc/containers/nodocker to quiet msg.`
 sudo touch /etc/containers/nodocker
 ```
+
+Since WSL2 is essentially a virtual machine managed by Windows, it "resets" the filesystem mount points every time it undergoes a complete shutdown (`wsl --shutdown`). If we don't **automate** the shared mount, Podman will complain every time it tries to create a volume for the containers.
+
+The cleanest, most modern, and Microsoft-recommended way to execute startup commands as root in WSL2 is by using the native /etc/wsl.conf file.
+
+Copy and paste the entire block below into your terminal. It will automatically create the service file in the correct directory:
+
+```sh
+cat <<EOF | sudo tee /etc/systemd/system/podman-shared-mount.service
+[Unit]
+Description=Make root mount shared for Podman rootless
+After=network.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/mount --make-rshared /
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
+EOF
+```
+
+**Enable and Start the Service**
+
+Now, tell systemd to enable this service so that it runs automatically on all subsequent WSL boots, and start it right now using the `--now` flag:
+
+```sh
+sudo systemctl enable --now podman-shared-mount.service
+```
+
+> [!NOTE]
+> **What does this do?** The `WARN[0000] "/" is not a shared mount` warning should have disappeared immediately. Best of all, even if you restart your computer or run `wsl --shutdown`, systemd will ensure that the environment is ready for your containers and volumes as soon as Arch starts.
+
+
 #### 10.1 Configure KIND to run using podman
 Since Podman doesn't run a daemon like Docker, we need to explicitly tell the kind to use the Podman provider instead of looking for the Docker socket.
 ```sh
