@@ -1,3 +1,11 @@
+# WSL2 + ArchLinux Setup 
+
+Setting up Arch Linux on WSL2 is a bit like building a ship in a bottle—it’s rewarding, but the initial environment is usually a "bare-bones" root shell. Since WSL Arch distributions often don't come with a default user, you'll want to get out of the `root` account as quickly as possible for safety.
+
+Here is the step-by-step process to create your user, grant them administrative powers, and set them as the default.
+
+
+
 - [WSL2 + ArchLinux Setup](#wsl2--archlinux-setup)
     - [1. Create Your New User](#1-create-your-new-user)
     - [2. Initialize the Package Manager and Enable Sudo Privileges](#2-initialize-the-package-manager-and-enable-sudo-privileges)
@@ -9,14 +17,16 @@
       - [7.1 Add lvim export](#71-add-lvim-export)
       - [7.2 zsh plugins](#72-zsh-plugins)
     - [8. Shell Commands on Rust](#8-shell-commands-on-rust)
+    - [9. Installing asdf - Manage all your runtime versions with one tool](#9-installing-asdf---manage-all-your-runtime-versions-with-one-tool)
+    - [10. Install podman, kubectl, and kind](#10-install-podman-kubectl-and-kind)
+      - [10.1 Configure KIND to run using podman](#101-configure-kind-to-run-using-podman)
+      - [10.2 Prepare to run KIND](#102-prepare-to-run-kind)
+      - [10.3 Install nftables and the compatibility layer.](#103-install-nftables-and-the-compatibility-layer)
+      - [10.4 Creating the Podman Network Configuration](#104-creating-the-podman-network-configuration)
+      - [10.4 Install kubectl autocomplete](#104-install-kubectl-autocomplete)
 - [Install Windows Terminal](#install-windows-terminal)
 
 
-# WSL2 + ArchLinux Setup 
-
-Setting up Arch Linux on WSL2 is a bit like building a ship in a bottle—it’s rewarding, but the initial environment is usually a "bare-bones" root shell. Since WSL Arch distributions often don't come with a default user, you'll want to get out of the `root` account as quickly as possible for safety.
-
-Here is the step-by-step process to create your user, grant them administrative powers, and set them as the default.
 
 ---
 
@@ -159,6 +169,7 @@ cd /tmp
 git clone https://aur.archlinux.org/yay.git
 cd yay
 makepkg -si
+cd
 ```
 > [!NOTE]
 > https://github.com/Jguer/yay?tab=readme-ov-file
@@ -172,7 +183,7 @@ yay -S ttf-meslo-nerd-font-powerlevel10k powerline-fonts awesome-terminal
 echo 'source /usr/share/zsh-theme-powerlevel10k/powerlevel10k.zsh-theme' >>~/.zshrc
 
 # Change shell
- chsh -s /usr/bin/zsh
+chsh -s /usr/bin/zsh
 
 # Type password and re-open window/tab on Windows Terminal
 ```
@@ -215,7 +226,100 @@ https://zaiste.net/posts/shell-commands-rust/
 
 ```sh
 cargo install bat exa procs dust tokei ytop tealdeer grex rmesg zoxide delta
+
+# Add alias to .zshrc
+alias ls="exa --icons"
+alias cat="bat --style=auto"
 ```
+
+### 9. Installing asdf - Manage all your runtime versions with one tool
+https://asdf-vm.com/
+
+```sh
+yay -S asdf-vm
+
+# Add to .zshrc
+source /opt/asdf-vm/asdf.sh
+```
+
+### 10. Install podman, kubectl, and kind
+```sh
+yay -S podman podman-compose podman-docker kubectl kind
+
+# For Podman to run containers without needing sudo, it requires a range of virtual user IDs. 
+# Run the command below:
+sudo usermod --add-subuids 100000-165535 --add-subgids 100000-165535 $USER
+
+# Set Permissions for newuidmap and newgidmap
+# Give these tools permission to perform operations with root privileges, 
+# even when called by you. The simplest and standard way to do this in Arch is by enabling the setuid bit.
+sudo chmod +s /usr/bin/newuidmap /usr/bin/newgidmap
+
+# WSL2 mounts the system root (/) as "private", but Podman rootless requires it to be "shared" for container volumes to function correctly.
+sudo mount --make-rshared /
+
+podman run hello-world
+
+# Create alias on .zshrc
+alias podman="docker"
+
+# To silence the warnning `Emulate Docker CLI using podman. Create /etc/containers/nodocker to quiet msg.`
+sudo touch /etc/containers/nodocker
+```
+#### 10.1 Configure KIND to run using podman
+Since Podman doesn't run a daemon like Docker, we need to explicitly tell the kind to use the Podman provider instead of looking for the Docker socket.
+```sh
+export KIND_EXPERIMENTAL_PROVIDER=podman
+```
+
+#### 10.2 Prepare to run KIND
+
+Podman uses a modern networking stack called Netavark. To create the isolated virtual network where the nodes in your Kubernetes cluster will communicate, Netavark attempts to use nftables (the modern replacement for iptables in Linux) to create NAT and routing rules.
+
+Since the Arch Linux image for WSL is extremely "raw," it simply doesn't come with the nftables package installed, causing the command to fail with the error "nft" did not return successfully.
+
+To resolve this, we need to install the necessary networking tools.
+
+#### 10.3 Install nftables and the compatibility layer.
+```sh
+yay -S -S nftables iptables-nft
+```
+> [!IMPORTANT] 
+> Warning about WSL2: On very rare occasions, the WSL kernel may need to be **restarted** to recognize the new `nftables` network modules. If the error persists exactly the same after installation, close the terminal, run `wsl --shutdown` in Windows PowerShell, open Arch again and try kind create cluster.
+
+#### 10.4 Creating the Podman Network Configuration
+
+Microsoft compiles the standard WSL kernel without some advanced netfilter modules (the kernel's firewall engine). When netavark (Podman's standard network engine) attempts to inject native nftables rules to create the cluster's isolated network, the kernel says "I don't recognize this resource," generating the "No such file or directory" error.
+
+The cleanest and most efficient way to resolve this, without needing to compile a custom kernel for WSL, is to change Podman's configuration so that it ignores the creation of firewall rules. Since we are running Podman in rootless mode, port mapping is already done in "userspace" by a tool called rootlessport, so we don't strictly need these kernel rules for the kind to work.
+
+We will create or overwrite the global container configuration file to force the firewall driver to none.
+
+Run the command below (it will create the directory and file automatically using tee):
+
+```sh
+sudo mkdir -p /etc/containers
+cat <<EOF | sudo tee /etc/containers/containers.conf
+[network]
+firewall_driver = "none"
+EOF
+```
+
+#### 10.4 Install kubectl autocomplete
+
+Add these lines to begin of .zshrc file
+```sh
+autoload -Uz compinit
+compinit
+```
+
+And these lines to the end of the file
+```sh
+source <(kubectl completion zsh)
+compdef __start_kubectl k
+```
+
+Reload with `source ~/.zshrc`
 
 
 # Install Windows Terminal 
